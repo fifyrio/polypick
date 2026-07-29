@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f5f3ee;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--paper);
+  color: #1a1a17;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper grain behind the whole app */
+.paper-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(26, 26, 23, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* Blurred/locked teaser content */
+.lock-blur {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    rgba(143, 140, 130, 0.15) 0%,
+    rgba(143, 140, 130, 0.35) 50%,
+    rgba(143, 140, 130, 0.15) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Thin scrollbar in sidebar */
+.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: #ddd8cc;
+  border-radius: 999px;
+}
