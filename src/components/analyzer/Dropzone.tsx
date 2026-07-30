@@ -6,7 +6,7 @@ import { IconImage } from '@/components/layout/icons'
 import { SOURCE_DOTS } from '@/lib/sample'
 
 interface DropzoneProps {
-  onFile: () => void
+  onFile: (file: File) => void
   onSample: () => void
 }
 
@@ -17,7 +17,8 @@ export function Dropzone({ onFile, onSample }: DropzoneProps) {
   function handleDrop(e: DragEvent) {
     e.preventDefault()
     setDragging(false)
-    onFile()
+    const file = e.dataTransfer.files?.[0]
+    if (file?.type.startsWith('image/')) onFile(file)
   }
 
   return (
@@ -77,7 +78,11 @@ export function Dropzone({ onFile, onSample }: DropzoneProps) {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={() => onFile()}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onFile(file)
+          e.target.value = ''
+        }}
       />
     </div>
   )

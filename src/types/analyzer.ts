@@ -30,4 +30,17 @@ export interface AnalysisStep {
   label: string
 }
 
-export type AnalyzerPhase = 'idle' | 'analyzing' | 'done'
+export type AnalyzerPhase = 'idle' | 'analyzing' | 'done' | 'error'
+
+export interface AnalyzedMarket {
+  source: MarketSource
+  question: string
+  yesPrice: number // cents
+  noPrice: number // cents
+}
+
+export interface AnalysisResult {
+  ok: true
+  market: AnalyzedMarket
+  verdict: Verdict
+}

@@ -22,7 +22,13 @@ function LockBar({ w = 'w-full' }: { w?: string }) {
   return <span className={cn('inline-block h-3.5 rounded shimmer-text animate-shimmer', w)} />
 }
 
-export function VerdictResult({ verdict }: { verdict: Verdict }) {
+interface VerdictResultProps {
+  verdict: Verdict
+  /** When true, show the real AI analysis instead of locked shimmer bars. */
+  revealed?: boolean
+}
+
+export function VerdictResult({ verdict, revealed = false }: VerdictResultProps) {
   return (
     <div className="animate-rise-in overflow-hidden rounded-xl2 border border-paper-line bg-paper-card shadow-card">
       {/* top accent */}
@@ -55,21 +61,29 @@ export function VerdictResult({ verdict }: { verdict: Verdict }) {
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
               {verdict.action}
             </p>
-            <span className="mt-1 block h-5 w-16 rounded shimmer-text animate-shimmer" />
+            {revealed ? (
+              <p className="mt-1 font-serif text-xl font-semibold text-ink">{verdict.entry}</p>
+            ) : (
+              <span className="mt-1 block h-5 w-16 rounded shimmer-text animate-shimmer" />
+            )}
           </div>
         </div>
 
-        {/* locked reasoning intro */}
-        <div className="mt-4 space-y-2 lock-blur" aria-hidden>
-          <LockBar />
-          <LockBar w="w-4/5" />
-        </div>
+        {/* reasoning intro */}
+        {revealed ? (
+          <p className="mt-4 text-sm leading-relaxed text-ink-soft">{verdict.summary}</p>
+        ) : (
+          <div className="mt-4 space-y-2 lock-blur" aria-hidden>
+            <LockBar />
+            <LockBar w="w-4/5" />
+          </div>
+        )}
 
         {/* stat row */}
         <div className="mt-5 grid grid-cols-3 gap-3">
-          <StatCell label="Cash out at" />
-          <StatCell label="Bail at" />
-          <StatCell label="Hold for" />
+          <StatCell label="Cash out at" value={revealed ? verdict.cashOutAt : undefined} />
+          <StatCell label="Bail at" value={revealed ? verdict.bailAt : undefined} />
+          <StatCell label="Hold for" value={revealed ? verdict.holdFor : undefined} />
         </div>
       </div>
 
@@ -84,24 +98,37 @@ export function VerdictResult({ verdict }: { verdict: Verdict }) {
               Polypick<span className="text-brand-600">.app</span>
             </span>
           </div>
-          <ul className="mt-4 space-y-3" aria-hidden>
-            {verdict.reasons.map((_, i) => (
+          <ul className="mt-4 space-y-3" aria-hidden={!revealed}>
+            {verdict.reasons.map((reason, i) => (
               <li key={i} className="flex items-start gap-3">
-                <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-ink/80" />
-                <span className="flex-1 lock-blur">
-                  <LockBar w={i === 1 ? 'w-11/12' : 'w-full'} />
-                </span>
+                {revealed ? (
+                  <>
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+                      <IconCheck className="h-2.5 w-2.5" />
+                    </span>
+                    <span className="flex-1 text-sm leading-relaxed text-ink">{reason}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-ink/80" />
+                    <span className="flex-1 lock-blur">
+                      <LockBar w={i === 1 ? 'w-11/12' : 'w-full'} />
+                    </span>
+                  </>
+                )}
               </li>
             ))}
           </ul>
         </div>
 
-        <button className="group mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-400 to-brand-600 py-4 text-base font-semibold text-brand-ink shadow-pop transition hover:from-brand-400 hover:to-brand-500">
-          Unlock my winning edge
-          <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
-            →
-          </span>
-        </button>
+        {!revealed && (
+          <button className="group mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-400 to-brand-600 py-4 text-base font-semibold text-brand-ink shadow-pop transition hover:from-brand-400 hover:to-brand-500">
+            Unlock my winning edge
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
+          </button>
+        )}
 
         <p className="mt-3 text-center font-mono text-[12px] text-ink-faint">
           {verdict.confidence}% confidence · +{verdict.edge} pp edge
@@ -111,13 +138,17 @@ export function VerdictResult({ verdict }: { verdict: Verdict }) {
   )
 }
 
-function StatCell({ label }: { label: string }) {
+function StatCell({ label, value }: { label: string; value?: string }) {
   return (
     <div className="rounded-lg border border-paper-line bg-white/50 px-3 py-2.5">
       <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
         {label}
       </p>
-      <span className="mt-2 block h-4 w-10 rounded shimmer-text animate-shimmer" aria-hidden />
+      {value ? (
+        <p className="mt-1.5 font-serif text-base font-semibold text-ink">{value}</p>
+      ) : (
+        <span className="mt-2 block h-4 w-10 rounded shimmer-text animate-shimmer" aria-hidden />
+      )}
     </div>
   )
 }
