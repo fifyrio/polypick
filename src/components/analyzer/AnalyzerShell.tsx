@@ -165,7 +165,7 @@ export function AnalyzerShell({ userName }: { userName: string }) {
             </div>
           ) : (
             <div className="animate-fade-in">
-              {market && <MarketCard market={market} reading={reading} />}
+              {market && <MarketCard market={market} reading={reading} quant={result?.quant} />}
               <AnalysisSteps steps={ANALYSIS_STEPS} current={current} />
               {phase === 'done' && (
                 <button
@@ -187,6 +187,7 @@ export function AnalyzerShell({ userName }: { userName: string }) {
                 verdict={result ? result.verdict : SAMPLE_VERDICT}
                 revealed={Boolean(result)}
                 risk={result?.risk}
+                quant={result?.quant}
               />
               {result && phase === 'done' && <SimulatorPanel result={result} />}
             </>

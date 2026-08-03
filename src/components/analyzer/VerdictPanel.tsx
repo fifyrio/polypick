@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn'
 import { IconCheck, IconSparkle } from '@/components/layout/icons'
-import type { RiskAssessment, RiskTier, Verdict } from '@/types/analyzer'
+import type { QuantSignal, RiskAssessment, RiskTier, Verdict } from '@/types/analyzer'
 
 export function VerdictPlaceholder() {
   return (
@@ -27,6 +27,7 @@ interface VerdictResultProps {
   /** When true, show the real AI analysis instead of locked shimmer bars. */
   revealed?: boolean
   risk?: RiskAssessment
+  quant?: QuantSignal
 }
 
 const RISK_STYLES: Record<RiskTier, { label: string; className: string }> = {
@@ -51,7 +52,7 @@ function RiskBadge({ risk }: { risk: RiskAssessment }) {
   )
 }
 
-export function VerdictResult({ verdict, revealed = false, risk }: VerdictResultProps) {
+export function VerdictResult({ verdict, revealed = false, risk, quant }: VerdictResultProps) {
   return (
     <div className="animate-rise-in overflow-hidden rounded-xl2 border border-paper-line bg-paper-card shadow-card">
       {/* top accent */}
@@ -164,6 +165,12 @@ export function VerdictResult({ verdict, revealed = false, risk }: VerdictResult
         <p className="mt-3 text-center font-mono text-[12px] text-ink-faint">
           {verdict.confidence}% confidence · +{verdict.edge} pp edge
         </p>
+
+        {revealed && quant?.matched && (
+          <p className="mt-1 text-center font-mono text-[11px] text-brand-700">
+            edge = (AI {quant.llmEdge} + 7d momentum {quant.quantEdge}) / 2 · live data ✓
+          </p>
+        )}
 
         {revealed && risk && (
           <ul className="mt-3 space-y-1 border-t border-paper-line pt-3">

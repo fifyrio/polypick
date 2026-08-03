@@ -21,6 +21,8 @@ export interface SimulationInput {
   trials?: number
   /** RNG seed for reproducible results. */
   seed?: number
+  /** Daily price volatility in cents; defaults to a generic 5.5. */
+  dailyVol?: number
 }
 
 export interface HistogramBin {
@@ -61,6 +63,7 @@ export function simulateTrade(input: SimulationInput): SimulationResult {
   const cashOut = clamp(input.cashOut, entry + 1, 99)
   const bail = clamp(input.bail, 1, entry - 1)
   const days = Math.max(1, Math.round(input.holdDays))
+  const vol = clamp(input.dailyVol ?? DAILY_VOL, 0.5, 25)
 
   const rng = mulberry32(input.seed ?? 42)
   const returns = new Array<number>(trials)
@@ -70,7 +73,7 @@ export function simulateTrade(input: SimulationInput): SimulationResult {
     let exit = entry
 
     for (let d = 0; d < days; d++) {
-      price += (fair - price) * REVERSION + gaussian(rng) * DAILY_VOL
+      price += (fair - price) * REVERSION + gaussian(rng) * vol
       price = clamp(price, 0.5, 99.5)
 
       if (price >= cashOut) {

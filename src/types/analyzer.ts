@@ -49,9 +49,29 @@ export interface RiskAssessment {
   drivers: string[]
 }
 
+/** Live-data signal from Polymarket price history regression. */
+export interface QuantSignal {
+  matched: boolean
+  /** Matched Polymarket slug, for provenance. */
+  slug?: string
+  /** Price drift of the chosen side, cents per day. */
+  momentumPerDay?: number
+  /** Realized daily volatility, cents. */
+  dailyVolCents?: number
+  /** Regression edge along the chosen side, cents (signed). */
+  quantEdge?: number
+  /** Original LLM edge before blending, pp. */
+  llmEdge?: number
+  /** Regression fit quality 0-1. */
+  rSquared?: number
+  /** 7-day price series of the chosen side, cents, for sparklines. */
+  sparkline?: number[]
+}
+
 export interface AnalysisResult {
   ok: true
   market: AnalyzedMarket
   verdict: Verdict
   risk: RiskAssessment
+  quant: QuantSignal
 }

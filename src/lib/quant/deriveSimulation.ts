@@ -20,6 +20,7 @@ export function deriveSimulationInput(result: AnalysisResult): SimulationInput {
     cashOut,
     bail,
     holdDays: parseDays(verdict.holdFor),
+    dailyVol: result.quant.matched ? result.quant.dailyVolCents : undefined,
   }
 }
 

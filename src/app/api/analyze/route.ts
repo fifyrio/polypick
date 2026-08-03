@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import type { AnalysisResult } from '@/types/analyzer'
+import type { AnalysisResult, MarketSource, VerdictSide } from '@/types/analyzer'
 import { computeRisk } from '@/lib/quant/riskScore'
 import { parseDays } from '@/lib/quant/deriveSimulation'
+import { analyzeSeries, invertSeries } from '@/lib/quant/regression'
+import { findMarket, fetchPriceHistory } from '@/lib/markets/gamma'
+import type { QuantSignal } from '@/types/analyzer'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(parsed, { status: 422 })
     }
 
-    return NextResponse.json(parsed)
+    return NextResponse.json(await enrichWithLiveData(parsed))
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Analysis failed'
     return NextResponse.json({ ok: false, error: message }, { status: 500 })
@@ -157,7 +160,7 @@ function parseModelResponse(
     return { ok: false, error: 'Model response missing required fields' }
   }
 
-  const source =
+  const source: MarketSource =
     market.source === 'kalshi' || market.source === 'predictit'
       ? market.source
       : 'polymarket'
@@ -168,11 +171,12 @@ function parseModelResponse(
   const edge = clamp(num(verdict.edge, 5), 1, 30)
   const holdFor = str(verdict.holdFor, '—')
 
-  return {
-    ok: true,
+  const base = {
+    ok: true as const,
     market: { source, question: market.question, yesPrice, noPrice },
     verdict: {
-      side: verdict.side,
+      // validated as 'YES' | 'NO' above; Record access loses the narrowing
+      side: verdict.side as VerdictSide,
       action: typeof verdict.action === 'string' ? verdict.action : 'BUY UNDER',
       entry: str(verdict.entry, '—'),
       cashOutAt: str(verdict.cashOutAt, '—'),
@@ -183,12 +187,70 @@ function parseModelResponse(
       confidence,
       edge,
     },
-    risk: computeRisk({
-      sidePrice: verdict.side === 'YES' ? yesPrice : noPrice,
-      edge,
-      confidence,
-      holdDays: parseDays(holdFor),
-    }),
+  }
+
+  return {
+    ...base,
+    risk: riskFor(base),
+    quant: { matched: false },
+  }
+}
+
+type ParsedResult = Omit<AnalysisResult, 'risk' | 'quant'>
+
+function riskFor(result: ParsedResult) {
+  return computeRisk({
+    sidePrice:
+      result.verdict.side === 'YES' ? result.market.yesPrice : result.market.noPrice,
+    edge: result.verdict.edge,
+    confidence: result.verdict.confidence,
+    holdDays: parseDays(result.verdict.holdFor),
+  })
+}
+
+/**
+ * Cross-check the LLM verdict against real Polymarket price history.
+ * On a match, the edge becomes the average of the LLM estimate and the
+ * regression edge, and risk is recomputed. Fails soft to the LLM-only result.
+ */
+async function enrichWithLiveData(result: AnalysisResult): Promise<AnalysisResult> {
+  if (result.market.source !== 'polymarket') return result
+
+  try {
+    const matched = await findMarket(result.market.question)
+    if (!matched) return result
+
+    const yesHistory = await fetchPriceHistory(matched.yesTokenId)
+    if (!yesHistory) return result
+
+    const side = result.verdict.side
+    const series = side === 'YES' ? yesHistory : invertSeries(yesHistory)
+    const signal = analyzeSeries(series, parseDays(result.verdict.holdFor))
+
+    const llmEdge = result.verdict.edge
+    const blendedEdge = clamp(
+      Math.round((llmEdge + clamp(signal.quantEdge, -15, 30)) / 2),
+      1,
+      30
+    )
+
+    const enriched: AnalysisResult = {
+      ...result,
+      verdict: { ...result.verdict, edge: blendedEdge },
+      quant: {
+        matched: true,
+        slug: matched.slug,
+        momentumPerDay: signal.momentumPerDay,
+        dailyVolCents: signal.dailyVolCents,
+        quantEdge: signal.quantEdge,
+        llmEdge,
+        rSquared: signal.rSquared,
+        sparkline: signal.sparkline,
+      },
+    }
+    return { ...enriched, risk: riskFor(enriched) }
+  } catch {
+    return result
   }
 }
 

@@ -1,12 +1,13 @@
 import { cn } from '@/lib/cn'
-import type { SampleMarket } from '@/types/analyzer'
+import type { QuantSignal, SampleMarket } from '@/types/analyzer'
 
 interface MarketCardProps {
   market: SampleMarket
   reading: boolean
+  quant?: QuantSignal
 }
 
-export function MarketCard({ market, reading }: MarketCardProps) {
+export function MarketCard({ market, reading, quant }: MarketCardProps) {
   return (
     <div className="rounded-xl2 border border-paper-line bg-paper-card p-5 shadow-card">
       {/* File header */}
@@ -42,8 +43,64 @@ export function MarketCard({ market, reading }: MarketCardProps) {
           <PriceCell label="YES" price={market.yesPrice} side="yes" />
           <PriceCell label="NO" price={market.noPrice} side="no" />
         </div>
+
+        {quant?.matched && quant.sparkline && quant.sparkline.length > 1 && (
+          <LiveHistory quant={quant} />
+        )}
       </div>
     </div>
+  )
+}
+
+function LiveHistory({ quant }: { quant: QuantSignal }) {
+  const points = quant.sparkline ?? []
+  const momentum = quant.momentumPerDay ?? 0
+
+  return (
+    <div className="mt-3 rounded-lg border border-paper-line bg-paper-card px-4 py-3">
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-700">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
+          Live Polymarket data · 7d
+        </p>
+        <span className="font-mono text-[11px] text-ink-faint">
+          {momentum >= 0 ? '+' : ''}
+          {momentum.toFixed(1)}¢/day
+        </span>
+      </div>
+      <Sparkline points={points} />
+    </div>
+  )
+}
+
+function Sparkline({ points }: { points: number[] }) {
+  const min = Math.min(...points)
+  const max = Math.max(...points)
+  const span = Math.max(max - min, 1)
+  const step = 100 / (points.length - 1)
+
+  const path = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(2)},${(28 - ((p - min) / span) * 24).toFixed(2)}`)
+    .join(' ')
+
+  const rising = points[points.length - 1] >= points[0]
+
+  return (
+    <svg
+      viewBox="0 0 100 32"
+      className="mt-2 h-12 w-full"
+      role="img"
+      aria-label="7-day price history"
+      preserveAspectRatio="none"
+    >
+      <path
+        d={path}
+        fill="none"
+        strokeWidth={1.5}
+        className={rising ? 'stroke-market-yes' : 'stroke-market-no'}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   )
 }
 
