@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn'
 import { IconCheck, IconSparkle } from '@/components/layout/icons'
-import type { Verdict } from '@/types/analyzer'
+import type { RiskAssessment, RiskTier, Verdict } from '@/types/analyzer'
 
 export function VerdictPlaceholder() {
   return (
@@ -26,9 +26,32 @@ interface VerdictResultProps {
   verdict: Verdict
   /** When true, show the real AI analysis instead of locked shimmer bars. */
   revealed?: boolean
+  risk?: RiskAssessment
 }
 
-export function VerdictResult({ verdict, revealed = false }: VerdictResultProps) {
+const RISK_STYLES: Record<RiskTier, { label: string; className: string }> = {
+  safe: { label: 'Safe', className: 'bg-market-yes/10 text-market-yes ring-market-yes/30' },
+  speculative: { label: 'Speculative', className: 'bg-amber-500/10 text-amber-700 ring-amber-500/30' },
+  lottery: { label: 'Lottery', className: 'bg-market-no/10 text-market-no ring-market-no/30' },
+}
+
+function RiskBadge({ risk }: { risk: RiskAssessment }) {
+  const style = RISK_STYLES[risk.tier]
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] ring-1',
+        style.className
+      )}
+      title={risk.drivers.join(' · ')}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {style.label} · {risk.score}
+    </span>
+  )
+}
+
+export function VerdictResult({ verdict, revealed = false, risk }: VerdictResultProps) {
   return (
     <div className="animate-rise-in overflow-hidden rounded-xl2 border border-paper-line bg-paper-card shadow-card">
       {/* top accent */}
@@ -46,6 +69,14 @@ export function VerdictResult({ verdict, revealed = false }: VerdictResultProps)
             Final verdict
           </span>
         </div>
+
+        {/* risk tier */}
+        {revealed && risk && (
+          <div className="mt-4 flex items-center justify-between">
+            <RiskBadge risk={risk} />
+            <span className="font-mono text-[11px] text-ink-faint">risk score / 100</span>
+          </div>
+        )}
 
         {/* headline verdict */}
         <div className="mt-4 flex items-center gap-4">
@@ -133,6 +164,16 @@ export function VerdictResult({ verdict, revealed = false }: VerdictResultProps)
         <p className="mt-3 text-center font-mono text-[12px] text-ink-faint">
           {verdict.confidence}% confidence · +{verdict.edge} pp edge
         </p>
+
+        {revealed && risk && (
+          <ul className="mt-3 space-y-1 border-t border-paper-line pt-3">
+            {risk.drivers.map((driver, i) => (
+              <li key={i} className="text-center font-mono text-[11px] text-ink-faint">
+                {driver}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

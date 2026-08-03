@@ -6,6 +6,7 @@ import { Dropzone } from './Dropzone'
 import { MarketCard } from './MarketCard'
 import { AnalysisSteps } from './AnalysisSteps'
 import { VerdictPlaceholder, VerdictResult } from './VerdictPanel'
+import { SimulatorPanel } from '@/components/simulator/SimulatorPanel'
 import { ANALYSIS_STEPS, SAMPLE_MARKET, SAMPLE_VERDICT } from '@/lib/sample'
 import type { AnalysisResult, AnalyzerPhase, SampleMarket } from '@/types/analyzer'
 
@@ -181,10 +182,14 @@ export function AnalyzerShell({ userName }: { userName: string }) {
         {/* Right */}
         <div>
           {analyzing ? (
-            <VerdictResult
-              verdict={result ? result.verdict : SAMPLE_VERDICT}
-              revealed={Boolean(result)}
-            />
+            <>
+              <VerdictResult
+                verdict={result ? result.verdict : SAMPLE_VERDICT}
+                revealed={Boolean(result)}
+                risk={result?.risk}
+              />
+              {result && phase === 'done' && <SimulatorPanel result={result} />}
+            </>
           ) : (
             <VerdictPlaceholder />
           )}

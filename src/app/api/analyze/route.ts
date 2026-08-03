@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import type { AnalysisResult } from '@/types/analyzer'
+import { computeRisk } from '@/lib/quant/riskScore'
+import { parseDays } from '@/lib/quant/deriveSimulation'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -160,26 +162,33 @@ function parseModelResponse(
       ? market.source
       : 'polymarket'
 
+  const yesPrice = clamp(Math.round(market.yesPrice), 1, 99)
+  const noPrice = clamp(Math.round(market.noPrice), 1, 99)
+  const confidence = clamp(num(verdict.confidence, 60), 50, 95)
+  const edge = clamp(num(verdict.edge, 5), 1, 30)
+  const holdFor = str(verdict.holdFor, '—')
+
   return {
     ok: true,
-    market: {
-      source,
-      question: market.question,
-      yesPrice: clamp(Math.round(market.yesPrice), 1, 99),
-      noPrice: clamp(Math.round(market.noPrice), 1, 99),
-    },
+    market: { source, question: market.question, yesPrice, noPrice },
     verdict: {
       side: verdict.side,
       action: typeof verdict.action === 'string' ? verdict.action : 'BUY UNDER',
       entry: str(verdict.entry, '—'),
       cashOutAt: str(verdict.cashOutAt, '—'),
       bailAt: str(verdict.bailAt, '—'),
-      holdFor: str(verdict.holdFor, '—'),
+      holdFor,
       summary: verdict.summary,
       reasons: verdict.reasons.filter((r): r is string => typeof r === 'string').slice(0, 4),
-      confidence: clamp(num(verdict.confidence, 60), 50, 95),
-      edge: clamp(num(verdict.edge, 5), 1, 30),
+      confidence,
+      edge,
     },
+    risk: computeRisk({
+      sidePrice: verdict.side === 'YES' ? yesPrice : noPrice,
+      edge,
+      confidence,
+      holdDays: parseDays(holdFor),
+    }),
   }
 }
 

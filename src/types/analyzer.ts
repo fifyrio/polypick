@@ -39,8 +39,19 @@ export interface AnalyzedMarket {
   noPrice: number // cents
 }
 
+export type RiskTier = 'safe' | 'speculative' | 'lottery'
+
+export interface RiskAssessment {
+  tier: RiskTier
+  /** 0-100, higher = riskier. */
+  score: number
+  /** Human-readable factors behind the score. */
+  drivers: string[]
+}
+
 export interface AnalysisResult {
   ok: true
   market: AnalyzedMarket
   verdict: Verdict
+  risk: RiskAssessment
 }
