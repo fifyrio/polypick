@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/cn'
 import {
   IconHome,
@@ -17,19 +18,21 @@ interface NavItem {
   label: string
   icon: (p: { className?: string }) => JSX.Element
   section?: 'main' | 'tools'
+  /** Route for real pages; placeholder items have no href. */
+  href?: string
 }
 
 const NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: IconHome, section: 'main' },
-  { key: 'analyzer', label: 'AI Analyzer', icon: IconSparkle, section: 'tools' },
+  { key: 'analyzer', label: 'AI Analyzer', icon: IconSparkle, section: 'tools', href: '/' },
+  { key: 'portfolio', label: 'Portfolio', icon: IconFlask, section: 'tools', href: '/portfolio' },
   { key: 'picks', label: 'Picks', icon: IconDrop, section: 'tools' },
   { key: 'coach', label: 'AI Coach', icon: IconCoach, section: 'tools' },
-  { key: 'paper', label: 'Paper Trading', icon: IconFlask, section: 'tools' },
   { key: 'help', label: 'Help Center', icon: IconHelp, section: 'tools' },
 ]
 
 export function Sidebar() {
-  const [active, setActive] = useState('analyzer')
+  const pathname = usePathname()
 
   const mainItems = NAV.filter((n) => n.section === 'main')
   const toolItems = NAV.filter((n) => n.section === 'tools')
@@ -48,12 +51,7 @@ export function Sidebar() {
       <nav className="scroll-slim flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
           {mainItems.map((item) => (
-            <NavButton
-              key={item.key}
-              item={item}
-              active={active === item.key}
-              onClick={() => setActive(item.key)}
-            />
+            <NavButton key={item.key} item={item} active={item.href === pathname} />
           ))}
         </ul>
 
@@ -62,12 +60,7 @@ export function Sidebar() {
         </p>
         <ul className="space-y-1">
           {toolItems.map((item) => (
-            <NavButton
-              key={item.key}
-              item={item}
-              active={active === item.key}
-              onClick={() => setActive(item.key)}
-            />
+            <NavButton key={item.key} item={item} active={item.href === pathname} />
           ))}
         </ul>
       </nav>
@@ -99,36 +92,33 @@ export function Sidebar() {
   )
 }
 
-function NavButton({
-  item,
-  active,
-  onClick,
-}: {
-  item: NavItem
-  active: boolean
-  onClick: () => void
-}) {
+function NavButton({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon
+  const className = cn(
+    'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
+    active ? 'bg-ink text-white shadow-card' : 'text-ink-soft hover:bg-ink/5 hover:text-ink'
+  )
+  const inner = (
+    <>
+      <Icon
+        className={cn(
+          'h-[18px] w-[18px] transition',
+          active ? 'text-brand-400' : 'text-ink-faint group-hover:text-ink'
+        )}
+      />
+      {item.label}
+    </>
+  )
+
   return (
     <li>
-      <button
-        onClick={onClick}
-        aria-current={active ? 'page' : undefined}
-        className={cn(
-          'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-          active
-            ? 'bg-ink text-white shadow-card'
-            : 'text-ink-soft hover:bg-ink/5 hover:text-ink'
-        )}
-      >
-        <Icon
-          className={cn(
-            'h-[18px] w-[18px] transition',
-            active ? 'text-brand-400' : 'text-ink-faint group-hover:text-ink'
-          )}
-        />
-        {item.label}
-      </button>
+      {item.href ? (
+        <Link href={item.href} aria-current={active ? 'page' : undefined} className={className}>
+          {inner}
+        </Link>
+      ) : (
+        <button className={className}>{inner}</button>
+      )}
     </li>
   )
 }
